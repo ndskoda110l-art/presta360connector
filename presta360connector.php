@@ -39,7 +39,7 @@ class Presta360connector extends Module
     const CONF_SECRET_REVEAL = 'P360_SECRET_REVEAL';
     const NONCE_TABLE = 'presta360_nonce';
     const PREVIOUS_SECRET_TTL = 86400;
-    const SOURCE_URL = 'https://github.com/presta360/presta360connector';
+    const SOURCE_URL = 'https://github.com/ndskoda110l-art/presta360connector';
 
     public function __construct()
     {

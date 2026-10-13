@@ -12,7 +12,9 @@ Read-only PrestaShop module that lets shop managers ask about their shop in Clau
 2. Open the module configuration, copy the **Endpoint URL** and the **Secret key** (shown once) into the Presta360 admin.
 
 ## Endpoint
-`POST index.php?fc=module&module=presta360connector&controller=api` – contract v1, see `docs/contract-v1.md` in the Presta360 repository.
+`POST index.php?fc=module&module=presta360connector&controller=api` – contract v1 (signed JSON request, named query, aggregated JSON result).
+
+This repository is published from the Presta360 project (`module/presta360connector`); issues and pull requests are welcome here.
 
 Queries in this version: `ping`, `orders.summary`, `orders.to_ship`, `stock.low`, `service.inbox`.
 
