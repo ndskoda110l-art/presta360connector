@@ -58,7 +58,7 @@ class ShopScope
 
         if ($selector === null) {
             $context = \Context::getContext();
-            $selector = isset($context->shop->id) ? (int) $context->shop->id : 0;
+            $selector = is_object($context->shop) ? (int) $context->shop->id : 0;
             if (!isset($shops[$selector])) {
                 $selector = (int) \Configuration::get('PS_SHOP_DEFAULT');
             }

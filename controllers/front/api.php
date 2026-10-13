@@ -35,14 +35,14 @@ class Presta360connectorApiModuleFrontController extends ModuleFrontController
 
         $this->ajax = true;
         $this->auth = false;
-        $this->guestAllowed = true;
         $this->content_only = true;
         $this->display_header = false;
         $this->display_footer = false;
         $this->ssl = Tools::usingSecureMode();
 
-        if (isset($this->context->cookie) && method_exists($this->context->cookie, 'disallowWriting')) {
-            $this->context->cookie->disallowWriting();
+        $cookie = $this->context->cookie;
+        if (is_object($cookie) && method_exists($cookie, 'disallowWriting')) {
+            $cookie->disallowWriting();
         }
     }
 
@@ -60,6 +60,7 @@ class Presta360connectorApiModuleFrontController extends ModuleFrontController
 
     public function setMedia()
     {
+        return true;
     }
 
     public function initHeader()
@@ -84,7 +85,9 @@ class Presta360connectorApiModuleFrontController extends ModuleFrontController
 
     public function postProcess()
     {
-        $handler = new Handler($this->module);
+        /** @var Presta360connector $module */
+        $module = $this->module;
+        $handler = new Handler($module);
         $result = $handler->handle(Request::fromGlobals());
         $this->p360Status = $result[0];
         $this->p360Payload = $result[1];

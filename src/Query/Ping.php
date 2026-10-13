@@ -14,7 +14,6 @@ if (!defined('_PS_VERSION_')) {
 }
 
 use Presta360\Connector\Capabilities\Probe;
-use Presta360\Connector\Db\ReadOnlyDb;
 use Presta360\Connector\Shop\ShopScope;
 
 /**
