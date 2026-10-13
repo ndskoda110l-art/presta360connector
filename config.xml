@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<module>
+    <name>presta360connector</name>
+    <displayName><![CDATA[Presta360 Connector]]></displayName>
+    <version><![CDATA[0.1.0]]></version>
+    <description><![CDATA[Read-only connector that lets shop managers ask about their PrestaShop in Claude.]]></description>
+    <author><![CDATA[Presta360]]></author>
+    <tab><![CDATA[administration]]></tab>
+    <is_configurable>1</is_configurable>
+    <need_instance>0</need_instance>
+    <limited_countries></limited_countries>
+</module>
