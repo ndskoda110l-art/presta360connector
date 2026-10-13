@@ -25,6 +25,8 @@ class Registry
         'orders.to_ship' => 'Presta360\\Connector\\Query\\OrdersToShip',
         'stock.low' => 'Presta360\\Connector\\Query\\StockLow',
         'service.inbox' => 'Presta360\\Connector\\Query\\ServiceInbox',
+        'traffic.summary' => 'Presta360\\Connector\\Query\\TrafficSummary',
+        'traffic.online' => 'Presta360\\Connector\\Query\\TrafficOnline',
     ];
 
     /**
