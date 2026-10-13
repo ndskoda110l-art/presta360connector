@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -26,7 +27,7 @@ use Presta360\Connector\Shop\ShopScope;
 class OrdersToShip implements QueryInterface
 {
     /** Hard cap of rows read; above it the result is marked truncated. */
-    const MAX_ROWS = 500;
+    private static $MAX_ROWS = 500;
 
     public function name()
     {
@@ -41,7 +42,7 @@ class OrdersToShip implements QueryInterface
         $maxAgeDays = Params::int($params, 'max_age_days', 60, 1, 365);
         $limit = Params::int($params, 'limit', 50, 1, 50);
         $carrierId = Params::int($params, 'id_carrier', 0, 0, PHP_INT_MAX);
-        $scope = ShopScope::resolve($db, Params::shop($params));
+        $scope = $context->shopScope($params);
         $langId = $context->langId($params);
 
         $waiting = 'os.`paid` = 1';
@@ -71,12 +72,12 @@ class OrdersToShip implements QueryInterface
                   AND ' . $waiting
             . ($carrierId > 0 ? ' AND o.`id_carrier` = ' . (int) $carrierId : '') . '
                 ORDER BY o.`date_add` ASC
-                LIMIT ' . (self::MAX_ROWS + 1);
+                LIMIT ' . (self::$MAX_ROWS + 1);
 
         $rows = $db->select($sql);
-        $truncated = count($rows) > self::MAX_ROWS;
+        $truncated = count($rows) > self::$MAX_ROWS;
         if ($truncated) {
-            $rows = array_slice($rows, 0, self::MAX_ROWS);
+            $rows = array_slice($rows, 0, self::$MAX_ROWS);
         }
 
         $now = time();

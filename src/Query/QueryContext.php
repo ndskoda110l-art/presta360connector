@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -48,6 +49,20 @@ class QueryContext
     public function module()
     {
         return $this->module;
+    }
+
+    /**
+     * Shops covered by a query, from the optional "id_shop" parameter.
+     *
+     * @param array $params
+     *
+     * @return \Presta360\Connector\Shop\ShopScope
+     *
+     * @throws InvalidParamsException
+     */
+    public function shopScope(array $params)
+    {
+        return \Presta360\Connector\Shop\ShopScope::resolve($this->db, Params::shop($params), $this->module->getRequestShopId());
     }
 
     /**

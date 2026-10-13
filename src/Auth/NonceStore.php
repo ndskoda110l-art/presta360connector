@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -19,7 +20,7 @@ if (!defined('_PS_VERSION_')) {
  */
 class NonceStore
 {
-    const TTL = 900;
+    private static $TTL = 900;
 
     /**
      * @param mixed $nonce
@@ -44,9 +45,9 @@ class NonceStore
             return false;
         }
 
-        $table = '`' . _DB_PREFIX_ . \Presta360connector::NONCE_TABLE . '`';
+        $table = '`' . _DB_PREFIX_ . \Presta360connector::$NONCE_TABLE . '`';
         if (mt_rand(1, 20) === 1) {
-            $db->execute('DELETE FROM ' . $table . ' WHERE `created_at` < ' . (int) ($now - self::TTL), false);
+            $db->execute('DELETE FROM ' . $table . ' WHERE `created_at` < ' . (int) ($now - self::$TTL), false);
         }
 
         $inserted = $db->execute(

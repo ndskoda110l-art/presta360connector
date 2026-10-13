@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -31,15 +32,15 @@ use Presta360\Connector\Compat\Random;
 class Presta360connector extends Module
 {
     /** Version of the request/response contract shared with the Presta360 service. */
-    const CONTRACT = 1;
+    public static $CONTRACT = 1;
 
-    const CONF_SECRET = 'P360_SECRET';
-    const CONF_SECRET_PREV = 'P360_SECRET_PREV';
-    const CONF_SECRET_PREV_UNTIL = 'P360_SECRET_PREV_UNTIL';
-    const CONF_SECRET_REVEAL = 'P360_SECRET_REVEAL';
-    const NONCE_TABLE = 'presta360_nonce';
-    const PREVIOUS_SECRET_TTL = 86400;
-    const SOURCE_URL = 'https://github.com/ndskoda110l-art/presta360connector';
+    private static $CONF_SECRET = 'P360_SECRET';
+    private static $CONF_SECRET_PREV = 'P360_SECRET_PREV';
+    private static $CONF_SECRET_PREV_UNTIL = 'P360_SECRET_PREV_UNTIL';
+    private static $CONF_SECRET_REVEAL = 'P360_SECRET_REVEAL';
+    public static $NONCE_TABLE = 'presta360_nonce';
+    private static $PREVIOUS_SECRET_TTL = 86400;
+    private static $SOURCE_URL = 'https://github.com/ndskoda110l-art/presta360connector';
 
     public function __construct()
     {
@@ -72,8 +73,8 @@ class Presta360connector extends Module
 
     public function uninstall()
     {
-        Db::getInstance()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . self::NONCE_TABLE . '`');
-        foreach ([self::CONF_SECRET, self::CONF_SECRET_PREV, self::CONF_SECRET_PREV_UNTIL, self::CONF_SECRET_REVEAL] as $key) {
+        Db::getInstance()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . self::$NONCE_TABLE . '`');
+        foreach ([self::$CONF_SECRET, self::$CONF_SECRET_PREV, self::$CONF_SECRET_PREV_UNTIL, self::$CONF_SECRET_REVEAL] as $key) {
             Configuration::deleteByName($key);
         }
 
@@ -88,17 +89,25 @@ class Presta360connector extends Module
     public function getActiveSecrets()
     {
         $secrets = [];
-        $current = Configuration::getGlobalValue(self::CONF_SECRET);
+        $current = Configuration::getGlobalValue(self::$CONF_SECRET);
         if (is_string($current) && $current !== '') {
             $secrets[] = $current;
         }
-        $previous = Configuration::getGlobalValue(self::CONF_SECRET_PREV);
-        $until = (int) Configuration::getGlobalValue(self::CONF_SECRET_PREV_UNTIL);
+        $previous = Configuration::getGlobalValue(self::$CONF_SECRET_PREV);
+        $until = (int) Configuration::getGlobalValue(self::$CONF_SECRET_PREV_UNTIL);
         if (is_string($previous) && $previous !== '' && $until > time()) {
             $secrets[] = $previous;
         }
 
         return $secrets;
+    }
+
+    /**
+     * @return int shop resolved by PrestaShop for the current request (0 when unknown)
+     */
+    public function getRequestShopId()
+    {
+        return is_object($this->context->shop) ? (int) $this->context->shop->id : 0;
     }
 
     public function getContent()
@@ -115,7 +124,7 @@ class Presta360connector extends Module
 
     private function installNonceTable()
     {
-        $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . self::NONCE_TABLE . '` (
+        $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . self::$NONCE_TABLE . '` (
             `nonce` VARCHAR(64) NOT NULL,
             `created_at` INT(10) UNSIGNED NOT NULL,
             PRIMARY KEY (`nonce`),
@@ -140,14 +149,14 @@ class Presta360connector extends Module
             return false;
         }
 
-        $old = Configuration::getGlobalValue(self::CONF_SECRET);
+        $old = Configuration::getGlobalValue(self::$CONF_SECRET);
         if ($keepPrevious && is_string($old) && $old !== '') {
-            Configuration::updateGlobalValue(self::CONF_SECRET_PREV, $old);
-            Configuration::updateGlobalValue(self::CONF_SECRET_PREV_UNTIL, (string) (time() + self::PREVIOUS_SECRET_TTL));
+            Configuration::updateGlobalValue(self::$CONF_SECRET_PREV, $old);
+            Configuration::updateGlobalValue(self::$CONF_SECRET_PREV_UNTIL, (string) (time() + self::$PREVIOUS_SECRET_TTL));
         }
 
-        return Configuration::updateGlobalValue(self::CONF_SECRET, $secret)
-            && Configuration::updateGlobalValue(self::CONF_SECRET_REVEAL, '1');
+        return Configuration::updateGlobalValue(self::$CONF_SECRET, $secret)
+            && Configuration::updateGlobalValue(self::$CONF_SECRET_REVEAL, '1');
     }
 
     private function getEndpointUrl()
@@ -160,55 +169,47 @@ class Presta360connector extends Module
 
     private function renderConfigurationPage()
     {
-        $reveal = Configuration::getGlobalValue(self::CONF_SECRET_REVEAL) === '1';
-        $secret = (string) Configuration::getGlobalValue(self::CONF_SECRET);
+        $reveal = Configuration::getGlobalValue(self::$CONF_SECRET_REVEAL) === '1';
+        $secret = (string) Configuration::getGlobalValue(self::$CONF_SECRET);
         if ($reveal) {
-            Configuration::updateGlobalValue(self::CONF_SECRET_REVEAL, '0');
+            Configuration::updateGlobalValue(self::$CONF_SECRET_REVEAL, '0');
         }
 
-        $action = AdminController::$currentIndex . '&configure=' . $this->name
-            . '&token=' . Tools::getAdminTokenLite('AdminModules');
+        // Texts are translated here (legacy $this->l works on 1.6 to 9.x); the template only escapes and prints.
+        $this->context->smarty->assign([
+            'p360' => [
+                'action' => AdminController::$currentIndex . '&configure=' . $this->name
+                    . '&token=' . Tools::getAdminTokenLite('AdminModules'),
+                'endpoint' => $this->getEndpointUrl(),
+                'secret' => $reveal ? $secret : '',
+                'module_version' => $this->version,
+                'contract' => (int) self::$CONTRACT,
+                'ps_version' => _PS_VERSION_,
+                'php_version' => PHP_VERSION,
+                'source_url' => self::$SOURCE_URL,
+                't' => [
+                    'connection' => $this->l('Connection details'),
+                    'copy_both' => $this->l('Copy both values into the Presta360 admin to connect this shop.'),
+                    'endpoint' => $this->l('Endpoint URL'),
+                    'secret' => $this->l('Secret key'),
+                    'shown_once' => $this->l('The secret is shown only once. Store it now; if you lose it, generate a new one.'),
+                    'hidden' => $this->l('The secret is hidden. Generate a new one if you need to reconnect.'),
+                    'confirm' => $this->l('Are you sure?'),
+                    'regenerate_help' => $this->l('Generating a new secret disconnects Presta360 until you paste the new secret. The previous secret keeps working for 24 hours.'),
+                    'regenerate' => $this->l('Generate new secret'),
+                    'status' => $this->l('Status'),
+                    'module_version' => $this->l('Module version'),
+                    'contract' => $this->l('Contract version'),
+                    'ps_version' => $this->l('PrestaShop version'),
+                    'php_version' => $this->l('PHP version'),
+                    'what' => $this->l('What this module does'),
+                    'what_queries' => $this->l('Runs only predefined read-only queries (sales, orders to ship, low stock, customer messages) and returns aggregated results to Presta360.'),
+                    'what_safety' => $this->l('Never modifies your shop data, does not store shop data outside your shop, and accepts only signed requests.'),
+                    'source' => $this->l('Source code'),
+                ],
+            ],
+        ]);
 
-        $h = function ($value) {
-            return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-        };
-
-        $html = '<div class="panel">'
-            . '<div class="panel-heading">' . $h($this->l('Connection details')) . '</div>'
-            . '<p>' . $h($this->l('Copy both values into the Presta360 admin to connect this shop.')) . '</p>'
-            . '<div class="form-group"><label>' . $h($this->l('Endpoint URL')) . '</label>'
-            . '<input type="text" class="form-control" readonly value="' . $h($this->getEndpointUrl()) . '" onclick="this.select()"></div>'
-            . '<div class="form-group"><label>' . $h($this->l('Secret key')) . '</label>';
-
-        if ($reveal && $secret !== '') {
-            $html .= '<input type="text" class="form-control" readonly value="' . $h($secret) . '" onclick="this.select()">'
-                . '<p class="help-block"><strong>' . $h($this->l('The secret is shown only once. Store it now; if you lose it, generate a new one.')) . '</strong></p>';
-        } else {
-            $html .= '<p class="form-control-static">' . $h($this->l('The secret is hidden. Generate a new one if you need to reconnect.')) . '</p>';
-        }
-
-        $html .= '</div>'
-            . '<form method="post" action="' . $h($action) . '" onsubmit="return confirm(\'' . $h($this->l('Are you sure?')) . '\');">'
-            . '<p class="help-block">' . $h($this->l('Generating a new secret disconnects Presta360 until you paste the new secret. The previous secret keeps working for 24 hours.')) . '</p>'
-            . '<button type="submit" name="submitP360Regenerate" value="1" class="btn btn-default">' . $h($this->l('Generate new secret')) . '</button>'
-            . '</form></div>';
-
-        $html .= '<div class="panel">'
-            . '<div class="panel-heading">' . $h($this->l('Status')) . '</div>'
-            . '<table class="table"><tbody>'
-            . '<tr><td>' . $h($this->l('Module version')) . '</td><td>' . $h($this->version) . '</td></tr>'
-            . '<tr><td>' . $h($this->l('Contract version')) . '</td><td>' . (int) self::CONTRACT . '</td></tr>'
-            . '<tr><td>' . $h($this->l('PrestaShop version')) . '</td><td>' . $h(_PS_VERSION_) . '</td></tr>'
-            . '<tr><td>' . $h($this->l('PHP version')) . '</td><td>' . $h(PHP_VERSION) . '</td></tr>'
-            . '</tbody></table></div>';
-
-        $html .= '<div class="panel">'
-            . '<div class="panel-heading">' . $h($this->l('What this module does')) . '</div>'
-            . '<p>' . $h($this->l('Runs only predefined read-only queries (sales, orders to ship, low stock, customer messages) and returns aggregated results to Presta360.')) . '</p>'
-            . '<p>' . $h($this->l('Never modifies your shop data, does not store shop data outside your shop, and accepts only signed requests.')) . '</p>'
-            . '<p>' . $h($this->l('Source code')) . ': ' . $h(self::SOURCE_URL) . '</p>'
-            . '</div>';
-
-        return $html;
+        return $this->display(__FILE__, 'views/templates/admin/configure.tpl');
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -43,12 +44,13 @@ class ShopScope
     /**
      * @param ReadOnlyDb $db
      * @param int|string|null $selector null = shop of the request, "all", or id_shop
+     * @param int $requestShopId shop resolved by PrestaShop from the request host
      *
      * @return self
      *
      * @throws InvalidParamsException
      */
-    public static function resolve(ReadOnlyDb $db, $selector)
+    public static function resolve(ReadOnlyDb $db, $selector, $requestShopId)
     {
         $shops = self::loadShops($db);
 
@@ -57,8 +59,7 @@ class ShopScope
         }
 
         if ($selector === null) {
-            $context = \Context::getContext();
-            $selector = is_object($context->shop) ? (int) $context->shop->id : 0;
+            $selector = (int) $requestShopId;
             if (!isset($shops[$selector])) {
                 $selector = (int) \Configuration::get('PS_SHOP_DEFAULT');
             }

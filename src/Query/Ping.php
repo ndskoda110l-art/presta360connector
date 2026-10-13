@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -56,7 +57,7 @@ class Ping implements QueryInterface
             ],
             'module' => [
                 'version' => $context->module()->version,
-                'contract' => \Presta360connector::CONTRACT,
+                'contract' => \Presta360connector::$CONTRACT,
                 'queries' => Registry::names(),
                 'safeguards' => $db->getSafeguards(),
             ],

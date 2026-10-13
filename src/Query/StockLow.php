@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -40,7 +41,7 @@ class StockLow implements QueryInterface
         $onlySold = Params::bool($params, 'only_sold', false);
         $includeVirtual = Params::bool($params, 'include_virtual', false);
         $limit = Params::int($params, 'limit', 50, 1, 100);
-        $scope = ShopScope::resolve($db, Params::shop($params));
+        $scope = $context->shopScope($params);
         $langId = $context->langId($params);
         $probe = new Probe($db);
 

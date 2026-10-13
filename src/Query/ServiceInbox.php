@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -27,7 +28,7 @@ use Presta360\Connector\Shop\ShopScope;
  */
 class ServiceInbox implements QueryInterface
 {
-    const MESSAGE_MAX_CHARS = 300;
+    private static $MESSAGE_MAX_CHARS = 300;
 
     public function name()
     {
@@ -41,7 +42,7 @@ class ServiceInbox implements QueryInterface
         $olderThanHours = Params::int($params, 'older_than_hours', 0, 0, 24 * 365);
         $maxAgeDays = Params::int($params, 'max_age_days', 60, 1, 365);
         $limit = Params::int($params, 'limit', 20, 1, 50);
-        $scope = ShopScope::resolve($db, Params::shop($params));
+        $scope = $context->shopScope($params);
 
         $since = Period::daysAgo($maxAgeDays);
         $where = ' WHERE ct.`id_shop` IN (' . ShopScope::inList($scope->shopIds()) . ')
@@ -90,7 +91,7 @@ class ServiceInbox implements QueryInterface
                 'email' => (string) $row['email'],
                 'id_order' => (int) $row['id_order'],
                 'order_reference' => (string) $row['order_reference'],
-                'last_message' => Text::clean($row['message'], self::MESSAGE_MAX_CHARS),
+                'last_message' => Text::clean($row['message'], self::$MESSAGE_MAX_CHARS),
             ];
         }
 

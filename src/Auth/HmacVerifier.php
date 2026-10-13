@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -19,7 +20,7 @@ if (!defined('_PS_VERSION_')) {
  */
 class HmacVerifier
 {
-    const WINDOW = 300;
+    private static $WINDOW = 300;
 
     /** @var string[] */
     private $secrets = [];
@@ -56,7 +57,7 @@ class HmacVerifier
             return false;
         }
         $ts = (int) $ts;
-        if (abs($now - $ts) > self::WINDOW) {
+        if (abs($now - $ts) > self::$WINDOW) {
             return false;
         }
 

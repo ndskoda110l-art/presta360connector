@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -24,7 +25,7 @@ use Presta360\Connector\Api\QueryFailedException;
  */
 class ReadOnlyDb
 {
-    const TIMEOUT_SECONDS = 5;
+    private static $TIMEOUT_SECONDS = 5;
 
     /** @var \Db */
     private $db;
@@ -57,10 +58,10 @@ class ReadOnlyDb
 
         $number = $this->numericVersion();
         if ($this->isMariaDb) {
-            if (version_compare($number, '10.1.1', '>=') && $this->exec('SET SESSION max_statement_time = ' . (int) self::TIMEOUT_SECONDS)) {
+            if (version_compare($number, '10.1.1', '>=') && $this->exec('SET SESSION max_statement_time = ' . (int) self::$TIMEOUT_SECONDS)) {
                 $this->timeout = 'mariadb';
             }
-        } elseif (version_compare($number, '5.7.8', '>=') && $this->exec('SET SESSION max_execution_time = ' . (int) (self::TIMEOUT_SECONDS * 1000))) {
+        } elseif (version_compare($number, '5.7.8', '>=') && $this->exec('SET SESSION max_execution_time = ' . (int) (self::$TIMEOUT_SECONDS * 1000))) {
             $this->timeout = 'mysql';
         }
     }

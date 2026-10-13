@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -28,7 +29,7 @@ use Presta360\Connector\Shop\ShopScope;
  */
 class OrdersSummary implements QueryInterface
 {
-    const MAX_DAYS = 400;
+    private static $MAX_DAYS = 400;
 
     public function name()
     {
@@ -38,9 +39,9 @@ class OrdersSummary implements QueryInterface
     public function run(array $params, QueryContext $context)
     {
         $db = $context->db();
-        $period = Period::resolve($params, self::MAX_DAYS);
+        $period = Period::resolve($params, self::$MAX_DAYS);
         $groupBy = Params::enum($params, 'group_by', ['none', 'day', 'hour', 'payment', 'carrier', 'state', 'shop'], 'none');
-        $scope = ShopScope::resolve($db, Params::shop($params));
+        $scope = $context->shopScope($params);
         $langId = $context->langId($params);
 
         $shops = ShopScope::inList($scope->orderShopIds());

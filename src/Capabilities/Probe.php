@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -22,10 +23,10 @@ use Presta360\Connector\Db\ReadOnlyDb;
 class Probe
 {
     /** Optional columns used by queries: "table.column" (unprefixed). */
-    const OPTIONAL_COLUMNS = 'product_shop.low_stock_threshold,stock_available.physical_quantity,stock_available.reserved_quantity,stock_available.location,orders.note,order_detail.total_refunded_tax_incl,customer_message.id_product,product.product_type';
+    private static $OPTIONAL_COLUMNS = 'product_shop.low_stock_threshold,stock_available.physical_quantity,stock_available.reserved_quantity,stock_available.location,orders.note,order_detail.total_refunded_tax_incl,customer_message.id_product,product.product_type';
 
     /** Tables whose size and collation are reported. */
-    const REPORTED_TABLES = 'orders,order_detail,cart,customer,customer_thread,stock_available,connections';
+    private static $REPORTED_TABLES = 'orders,order_detail,cart,customer,customer_thread,stock_available,connections';
 
     /** @var ReadOnlyDb */
     private $db;
@@ -60,7 +61,7 @@ class Probe
             return $this->columns;
         }
 
-        $wanted = explode(',', self::OPTIONAL_COLUMNS);
+        $wanted = explode(',', self::$OPTIONAL_COLUMNS);
         $tables = [];
         $names = [];
         foreach ($wanted as $item) {
@@ -95,7 +96,7 @@ class Probe
     public function tables()
     {
         $names = [];
-        foreach (explode(',', self::REPORTED_TABLES) as $table) {
+        foreach (explode(',', self::$REPORTED_TABLES) as $table) {
             $names[] = '\'' . pSQL(_DB_PREFIX_ . $table) . '\'';
         }
 

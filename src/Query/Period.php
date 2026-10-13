@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -24,7 +25,7 @@ use Presta360\Connector\Api\InvalidParamsException;
  */
 class Period
 {
-    const PRESETS = 'today,yesterday,last_7_days,last_30_days,this_week,last_week,this_month,last_month,this_year,last_year';
+    private static $PRESETS = 'today,yesterday,last_7_days,last_30_days,this_week,last_week,this_month,last_month,this_year,last_year';
 
     /**
      * @param array $params "period" preset, or "from" and "to" as "Y-m-d H:i:s" local time
@@ -47,7 +48,7 @@ class Period
             }
             $preset = 'custom';
         } else {
-            $preset = Params::enum($params, 'period', explode(',', self::PRESETS), 'today');
+            $preset = Params::enum($params, 'period', explode(',', self::$PRESETS), 'today');
             list($from, $to) = self::preset($preset, $now);
         }
 

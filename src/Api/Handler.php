@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Presta360 Connector
  *
@@ -26,7 +27,7 @@ use Presta360\Connector\Query\Registry;
  */
 class Handler
 {
-    const MAX_BODY_BYTES = 65536;
+    private static $MAX_BODY_BYTES = 65536;
 
     /** @var \Presta360connector */
     private $module;
@@ -53,7 +54,7 @@ class Handler
             }
 
             $raw = $request->getBody();
-            if ($raw === '' || strlen($raw) > self::MAX_BODY_BYTES) {
+            if ($raw === '' || strlen($raw) > self::$MAX_BODY_BYTES) {
                 return $this->error(400, 'bad_request', 'Missing or oversized body.');
             }
 
@@ -69,7 +70,7 @@ class Handler
             }
 
             $version = isset($data['v']) ? (int) $data['v'] : 0;
-            if ($version < 1 || $version > \Presta360connector::CONTRACT) {
+            if ($version < 1 || $version > \Presta360connector::$CONTRACT) {
                 return $this->error(400, 'unsupported_contract', 'Unsupported contract version.');
             }
 
@@ -101,7 +102,7 @@ class Handler
 
             return [200, [
                 'ok' => true,
-                'contract' => \Presta360connector::CONTRACT,
+                'contract' => \Presta360connector::$CONTRACT,
                 'module' => $this->module->version,
                 'query' => $queryName,
                 'took_ms' => (int) round((microtime(true) - $started) * 1000),
@@ -130,7 +131,7 @@ class Handler
 
         return [$status, [
             'ok' => false,
-            'contract' => \Presta360connector::CONTRACT,
+            'contract' => \Presta360connector::$CONTRACT,
             'module' => $this->module->version,
             'error' => $error,
         ]];
