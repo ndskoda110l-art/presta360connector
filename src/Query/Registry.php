@@ -30,6 +30,8 @@ class Registry
         'orders.detail' => 'Presta360\\Connector\\Query\\OrdersDetail',
         'products.top' => 'Presta360\\Connector\\Query\\ProductsTop',
         'orders.list' => 'Presta360\\Connector\\Query\\OrdersList',
+        'customers.lookup' => 'Presta360\\Connector\\Query\\CustomersLookup',
+        'carts.abandoned' => 'Presta360\\Connector\\Query\\CartsAbandoned',
     ];
 
     /**
