@@ -89,6 +89,9 @@ class OrdersSummary implements QueryInterface
             $merged[$key]['invoiced_orders'] = (int) $row['invoiced_orders'];
             $merged[$key]['revenue_bo'] = $this->money($row['revenue_bo']);
         }
+        if ($groupBy === 'payment') {
+            $merged = $this->commonPaymentLabels($db, $shops, $merged);
+        }
 
         $totals = $this->emptyRow([], 'none');
         foreach ($merged as $row) {
@@ -184,6 +187,67 @@ class OrdersSummary implements QueryInterface
             'invoiced_orders' => 0,
             'revenue_bo' => 0.0,
         ];
+    }
+
+    /**
+     * One stable label per payment module: the module's name as the back office shows it, else
+     * the name most of the recent orders carry. Each order keeps the payment name in the language
+     * of its checkout ("Platba na faktúru", "Payment on invoice"...), so MAX() per module would
+     * show a different one from period to period.
+     *
+     * @param string $shops
+     *
+     * @return array
+     */
+    private function commonPaymentLabels(ReadOnlyDb $db, $shops, array $merged)
+    {
+        $rows = $db->select('SELECT r.`module`, CAST(r.`payment` AS BINARY) AS payment_label, COUNT(*) AS n
+            FROM (SELECT o.`module`, o.`payment` FROM ' . ReadOnlyDb::t('orders') . ' o
+                  WHERE o.`id_shop` IN (' . $shops . ')
+                  ORDER BY o.`id_order` DESC
+                  LIMIT 2000) r
+            GROUP BY r.`module`, payment_label
+            ORDER BY n DESC
+            LIMIT 500');
+        $labels = [];
+        foreach ($rows as $row) {
+            $module = strtolower((string) $row['module']);
+            if (!isset($labels[$module]) && (string) $row['payment_label'] !== '') {
+                $labels[$module] = (string) $row['payment_label'];
+            }
+        }
+        foreach ($merged as $key => $row) {
+            $name = $this->moduleDisplayName((string) $key);
+            if ($name !== null) {
+                $merged[$key]['label'] = $name;
+            } elseif (isset($labels[strtolower((string) $key)])) {
+                $merged[$key]['label'] = $labels[strtolower((string) $key)];
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * The payment module's name as the back office shows it, in the shop's language
+     * (config.xml + module translations); null when the module is gone or has no name.
+     *
+     * @param string $module
+     *
+     * @return string|null
+     */
+    private function moduleDisplayName($module)
+    {
+        if (!preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $module) || !method_exists('Module', 'getModuleName')) {
+            return null;
+        }
+        try {
+            $name = trim(strip_tags((string) \Module::getModuleName($module)));
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        return $name === '' || strcasecmp($name, 'Module ' . $module) === 0 ? null : $name;
     }
 
     private function money($value)
