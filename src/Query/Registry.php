@@ -27,6 +27,8 @@ class Registry
         'service.inbox' => 'Presta360\\Connector\\Query\\ServiceInbox',
         'traffic.summary' => 'Presta360\\Connector\\Query\\TrafficSummary',
         'traffic.online' => 'Presta360\\Connector\\Query\\TrafficOnline',
+        'orders.detail' => 'Presta360\\Connector\\Query\\OrdersDetail',
+        'products.top' => 'Presta360\\Connector\\Query\\ProductsTop',
     ];
 
     /**
