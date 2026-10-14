@@ -41,16 +41,23 @@ class OrdersToShip implements QueryInterface
         $maxAgeDays = Params::int($params, 'max_age_days', 60, 1, 365);
         $limit = Params::int($params, 'limit', 50, 1, 50);
         $carrierId = Params::int($params, 'id_carrier', 0, 0, PHP_INT_MAX);
+        // States a shop uses for "handed to the carrier" without the shipped flag (e.g. "Transport ordered").
+        $shippedStates = Params::idList($params, 'shipped_states', 20);
         $scope = $context->shopScope($params);
         $langId = $context->langId($params);
 
-        $waiting = 'os.`paid` = 1';
+        // Paid orders in a valid (logable) state, or orders shipped before payment (cash on delivery,
+        // invoice) in any state that is not cancelled or failed: some shops keep "in preparation" not
+        // logable until the invoice is paid (pilot 4cars).
+        $waiting = '(os.`logable` = 1 AND os.`paid` = 1)';
         if ($includeCod && !empty($codModules)) {
             $quoted = [];
             foreach ($codModules as $module) {
                 $quoted[] = '\'' . pSQL($module) . '\'';
             }
-            $waiting = '(' . $waiting . ' OR o.`module` IN (' . implode(',', $quoted) . '))';
+            $closed = array_values(array_filter([(int) \Configuration::get('PS_OS_CANCELED'), (int) \Configuration::get('PS_OS_ERROR')]));
+            $waiting = '(' . $waiting . ' OR (o.`module` IN (' . implode(',', $quoted) . ')'
+                . (empty($closed) ? '' : ' AND o.`current_state` NOT IN (' . implode(',', $closed) . ')') . '))';
         }
 
         $rate = 'IFNULL(NULLIF(o.`conversion_rate`, 0), 1)';
@@ -67,7 +74,8 @@ class OrdersToShip implements QueryInterface
                 LEFT JOIN ' . ReadOnlyDb::t('customer') . ' cu ON cu.`id_customer` = o.`id_customer`
                 WHERE o.`id_shop` IN (' . ShopScope::inList($scope->orderShopIds()) . ')
                   AND o.`date_add` >= \'' . pSQL(Period::daysAgo($maxAgeDays)) . '\'
-                  AND os.`logable` = 1 AND os.`shipped` = 0 AND os.`delivery` = 0 AND os.`deleted` = 0
+                  AND os.`shipped` = 0 AND os.`delivery` = 0 AND os.`deleted` = 0'
+            . (empty($shippedStates) ? '' : ' AND o.`current_state` NOT IN (' . implode(',', $shippedStates) . ')') . '
                   AND ' . $waiting
             . ($carrierId > 0 ? ' AND o.`id_carrier` = ' . (int) $carrierId : '') . '
                 ORDER BY o.`date_add` ASC

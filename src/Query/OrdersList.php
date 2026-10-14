@@ -47,6 +47,14 @@ class OrdersList implements QueryInterface
         $scope = $context->shopScope($params);
         $langId = $context->langId($params);
         $search = $this->search($params);
+        $shippedStates = Params::idList($params, 'shipped_states', 20);
+        $codModules = Params::identifierList($params, 'cod_modules', ['ps_cashondelivery', 'cashondelivery'], 20);
+        $quoted = [];
+        foreach ($codModules as $module) {
+            $quoted[] = '\'' . pSQL($module) . '\'';
+        }
+        $codList = empty($quoted) ? '\'\'' : implode(',', $quoted);
+        $shippedList = empty($shippedStates) ? '0' : implode(',', $shippedStates);
 
         $where = [
             'o.`id_shop` IN (' . ShopScope::inList($scope->orderShopIds()) . ')',
@@ -60,13 +68,13 @@ class OrdersList implements QueryInterface
         $cancelledList = empty($cancelled) ? '0' : implode(',', $cancelled);
         switch ($status) {
             case 'unpaid':
-                $where[] = 'os.`paid` = 0 AND os.`shipped` = 0 AND os.`delivery` = 0 AND o.`current_state` NOT IN (' . $cancelledList . ')';
+                $where[] = 'os.`paid` = 0 AND os.`shipped` = 0 AND os.`delivery` = 0 AND o.`current_state` NOT IN (' . $cancelledList . ',' . $shippedList . ')';
                 break;
             case 'to_ship':
-                $where[] = 'os.`paid` = 1 AND os.`shipped` = 0 AND os.`delivery` = 0';
+                $where[] = '((os.`logable` = 1 AND os.`paid` = 1) OR o.`module` IN (' . $codList . ')) AND os.`shipped` = 0 AND os.`delivery` = 0 AND o.`current_state` NOT IN (' . $cancelledList . ',' . $shippedList . ')';
                 break;
             case 'shipped':
-                $where[] = '(os.`shipped` = 1 OR os.`delivery` = 1)';
+                $where[] = '(os.`shipped` = 1 OR os.`delivery` = 1 OR o.`current_state` IN (' . $shippedList . '))';
                 break;
             case 'cancelled':
                 $where[] = 'o.`current_state` IN (' . $cancelledList . ')';
@@ -110,7 +118,7 @@ class OrdersList implements QueryInterface
                 'id_state' => (int) $row['current_state'],
                 'state_color' => (string) $row['state_color'],
                 'paid' => (bool) $row['paid'],
-                'shipped' => (bool) $row['shipped'] || (bool) $row['delivery'],
+                'shipped' => (bool) $row['shipped'] || (bool) $row['delivery'] || in_array((int) $row['current_state'], $shippedStates, true),
                 'cancelled' => in_array((int) $row['current_state'], $cancelled, true),
                 'hours_in_state' => $changed === false ? null : max(0, (int) floor(($now - $changed) / 3600)),
                 'total_paid_tax_incl' => round((float) $row['total_paid_tax_incl'], 2),

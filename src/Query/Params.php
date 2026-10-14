@@ -113,6 +113,36 @@ class Params
     }
 
     /**
+     * List of positive integer ids such as order state ids.
+     *
+     * @return int[]
+     *
+     * @throws InvalidParamsException
+     */
+    public static function idList(array $params, $key, $maxItems)
+    {
+        if (!isset($params[$key])) {
+            return [];
+        }
+        $value = $params[$key];
+        if (is_array($value) && count($value) <= $maxItems) {
+            $out = [];
+            foreach ($value as $item) {
+                if (!(is_int($item) || (is_string($item) && ctype_digit($item))) || (int) $item <= 0) {
+                    $out = null;
+                    break;
+                }
+                $out[] = (int) $item;
+            }
+            if ($out !== null) {
+                return array_values(array_unique($out));
+            }
+        }
+
+        throw new InvalidParamsException(sprintf('Parameter "%s" must be a list of at most %d positive integers.', $key, $maxItems));
+    }
+
+    /**
      * Shop selector: absent = shop resolved from the request, "all" = every shop, or a positive id.
      *
      * @return int|string|null

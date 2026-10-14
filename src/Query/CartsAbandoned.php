@@ -18,7 +18,8 @@ use Presta360\Connector\Shop\ShopScope;
 
 /**
  * Abandoned carts (zadanie, príloha B: carts.abandoned; same rule as BO dashactivity): carts with
- * products, last changed between "to_hours" and "from_hours" ago, that never became an order.
+ * products, last changed between "to_hours" and "from_hours" ago, that never became an order and
+ * whose customer did not order anything after the cart was last changed (zadanie D17, pilot 4cars).
  *
  * The value is an estimate without tax: base product price + combination impact, no discounts,
  * specific prices or shipping (zadanie D17). Customer data in transit only (zadanie D6).
@@ -51,6 +52,7 @@ class CartsAbandoned implements QueryInterface
             WHERE ca.`id_shop` IN (' . ShopScope::inList($scope->orderShopIds()) . ')
               AND ca.`date_upd` >= \'' . pSQL($oldest) . '\' AND ca.`date_upd` < \'' . pSQL($newest) . '\'
               AND NOT EXISTS (SELECT 1 FROM ' . ReadOnlyDb::t('orders') . ' o WHERE o.`id_cart` = ca.`id_cart`)
+              AND NOT EXISTS (SELECT 1 FROM ' . ReadOnlyDb::t('orders') . ' o2 WHERE ca.`id_customer` > 0 AND o2.`id_customer` = ca.`id_customer` AND o2.`date_add` >= ca.`date_upd`)
               AND EXISTS (SELECT 1 FROM ' . ReadOnlyDb::t('cart_product') . ' cp0 WHERE cp0.`id_cart` = ca.`id_cart`)'
             . ($onlyKnown ? ' AND ca.`id_customer` > 0' : '');
 
