@@ -13,6 +13,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+use Presta360\Connector\Api\Handler;
 use Presta360\Connector\Capabilities\Probe;
 use Presta360\Connector\Shop\ShopScope;
 
@@ -57,7 +58,8 @@ class Ping implements QueryInterface
             'module' => [
                 'version' => $context->module()->version,
                 'contract' => \Presta360connector::$CONTRACT,
-                'queries' => Registry::names(),
+                'queries' => array_merge(Registry::names(), ['batch']),
+                'batch' => ['max_queries' => Handler::$BATCH_MAX_QUERIES, 'budget_seconds' => Handler::$BATCH_BUDGET_SECONDS],
                 'safeguards' => $db->getSafeguards(),
             ],
             'shops' => $shops,
