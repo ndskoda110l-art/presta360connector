@@ -29,6 +29,7 @@ class Registry
         'traffic.online' => 'Presta360\\Connector\\Query\\TrafficOnline',
         'orders.detail' => 'Presta360\\Connector\\Query\\OrdersDetail',
         'products.top' => 'Presta360\\Connector\\Query\\ProductsTop',
+        'orders.list' => 'Presta360\\Connector\\Query\\OrdersList',
     ];
 
     /**
