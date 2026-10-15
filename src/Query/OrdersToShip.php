@@ -40,6 +40,8 @@ class OrdersToShip implements QueryInterface
         $codModules = Params::identifierList($params, 'cod_modules', ['ps_cashondelivery', 'cashondelivery'], 20);
         $maxAgeDays = Params::int($params, 'max_age_days', 60, 1, 365);
         $limit = Params::int($params, 'limit', 50, 1, 50);
+        // Waiting longer than this in the current state counts as stuck (module 0.8.0, zadanie D21).
+        $stuckHours = Params::int($params, 'stuck_hours', 48, 1, 24 * 30);
         $carrierId = Params::int($params, 'id_carrier', 0, 0, PHP_INT_MAX);
         // States a shop uses for "handed to the carrier" without the shipped flag (e.g. "Transport ordered").
         $shippedStates = Params::idList($params, 'shipped_states', 20);
@@ -55,7 +57,7 @@ class OrdersToShip implements QueryInterface
             foreach ($codModules as $module) {
                 $quoted[] = '\'' . pSQL($module) . '\'';
             }
-            $closed = array_values(array_filter([(int) \Configuration::get('PS_OS_CANCELED'), (int) \Configuration::get('PS_OS_ERROR')]));
+            $closed = array_values(array_filter([(int) \Configuration::get('PS_OS_CANCELED'), (int) \Configuration::get('PS_OS_ERROR'), (int) \Configuration::get('PS_OS_REFUND')]));
             $waiting = '(' . $waiting . ' OR (o.`module` IN (' . implode(',', $quoted) . ')'
                 . (empty($closed) ? '' : ' AND o.`current_state` NOT IN (' . implode(',', $closed) . ')') . '))';
         }
@@ -91,7 +93,7 @@ class OrdersToShip implements QueryInterface
         $codLookup = array_fill_keys($codModules, true);
         $carriers = [];
         $orders = [];
-        $total = ['orders' => 0, 'value_tax_incl' => 0.0, 'value_bo' => 0.0, 'cod_unpaid' => 0];
+        $total = ['orders' => 0, 'value_tax_incl' => 0.0, 'value_bo' => 0.0, 'cod_unpaid' => 0, 'stuck' => 0];
 
         foreach ($rows as $row) {
             $carrier = (int) $row['id_carrier'];
@@ -121,6 +123,9 @@ class OrdersToShip implements QueryInterface
             $total['value_bo'] = round($total['value_bo'] + (float) $row['value_bo'], 2);
             if ($isCodUnpaid) {
                 ++$total['cod_unpaid'];
+            }
+            if ($waitingHours !== null && $waitingHours > $stuckHours) {
+                ++$total['stuck'];
             }
 
             if (count($orders) < $limit) {
@@ -156,6 +161,7 @@ class OrdersToShip implements QueryInterface
             'orders' => $orders,
             'orders_listed' => count($orders),
             'truncated' => $truncated,
+            'stuck_hours' => $stuckHours,
         ];
     }
 }
