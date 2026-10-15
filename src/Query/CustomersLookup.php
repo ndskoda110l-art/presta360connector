@@ -21,7 +21,8 @@ use Presta360\Connector\Shop\ShopScope;
  * Customers (zadanie, príloha B: customers.lookup).
  *
  * - "id_customer": one profile with KPIs, addresses and the latest orders;
- * - "q": search by name, company, e-mail or id; without "q" the newest customers.
+ * - "q": search by name, company, e-mail or id; without "q" the newest customers, or with
+ *   sort = "recent_buyers" (module 0.10.0) the customers of the latest valid orders.
  *
  * KPIs count valid orders only; amounts in the default currency. Personal data is passed through
  * in transit only (zadanie D6); never the password hash or secure key.
@@ -68,6 +69,7 @@ class CustomersLookup implements QueryInterface
     {
         $db = $context->db();
         $limit = Params::int($params, 'limit', 20, 1, 50);
+        $sort = Params::enum($params, 'sort', ['newest', 'recent_buyers'], 'newest');
         $shops = ShopScope::inList($scope->orderShopIds());
         $where = ['c.`deleted` = 0', 'c.`id_shop` IN (' . $shops . ')'];
 
@@ -91,13 +93,36 @@ class CustomersLookup implements QueryInterface
             }
             $where[] = '(' . implode(' OR ', $or) . ')';
         }
+        // Customers of the latest valid orders (newest order first): a primary-key scan of orders.
+        $order = 'c.`id_customer` DESC';
+        $buyers = null;
+        if ($q === null && $sort === 'recent_buyers') {
+            $buyers = [];
+            foreach ($db->select('SELECT o.`id_customer` FROM ' . ReadOnlyDb::t('orders') . ' o
+                WHERE o.`id_shop` IN (' . $shops . ') AND o.`valid` = 1 AND o.`id_customer` > 0
+                ORDER BY o.`id_order` DESC
+                LIMIT 1000') as $row) {
+                $id = (int) $row['id_customer'];
+                if (!in_array($id, $buyers, true)) {
+                    $buyers[] = $id;
+                }
+                if (count($buyers) >= $limit) {
+                    break;
+                }
+            }
+            $where[] = 'c.`id_customer` IN (' . (empty($buyers) ? '0' : ShopScope::inList($buyers)) . ')';
+            $order = empty($buyers) ? $order : 'FIELD(c.`id_customer`, ' . ShopScope::inList($buyers) . ')';
+        }
         $whereSql = ' FROM ' . ReadOnlyDb::t('customer') . ' c WHERE ' . implode(' AND ', $where);
 
-        $total = (int) $db->value('SELECT COUNT(*)' . $whereSql);
+        $total = $buyers === null
+            ? (int) $db->value('SELECT COUNT(*)' . $whereSql)
+            : (int) $db->value('SELECT COUNT(DISTINCT o.`id_customer`) FROM ' . ReadOnlyDb::t('orders') . ' o
+                WHERE o.`id_shop` IN (' . $shops . ') AND o.`valid` = 1 AND o.`id_customer` > 0');
         $rows = $db->select('SELECT c.`id_customer`, c.`firstname`, c.`lastname`, c.`email`, c.`company`, c.`date_add`,
                 c.`is_guest`, c.`active`, c.`newsletter`, ' . $this->kpiColumns($shops)
             . $whereSql . '
-            ORDER BY c.`id_customer` DESC
+            ORDER BY ' . $order . '
             LIMIT ' . (int) $limit);
 
         $customers = [];
@@ -109,6 +134,7 @@ class CustomersLookup implements QueryInterface
             'shops' => $scope->describe(),
             'currency' => $context->defaultCurrencyIso(),
             'query' => $q,
+            'sort' => $q === null ? $sort : 'search',
             'total' => $total,
             'customers' => $customers,
             'untrusted_fields' => ['customers.name', 'customers.email', 'customers.company'],
