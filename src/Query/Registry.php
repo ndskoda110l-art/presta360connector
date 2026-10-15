@@ -33,6 +33,7 @@ class Registry
         'customers.lookup' => 'Presta360\\Connector\\Query\\CustomersLookup',
         'carts.abandoned' => 'Presta360\\Connector\\Query\\CartsAbandoned',
         'service.thread' => 'Presta360\\Connector\\Query\\ServiceThread',
+        'catalog.search' => 'Presta360\\Connector\\Query\\CatalogSearch',
     ];
 
     /**

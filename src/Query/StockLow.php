@@ -86,7 +86,11 @@ class StockLow implements QueryInterface
             $rows = array_slice($rows, 0, $limit);
         }
 
-        $combinationNames = $this->combinationNames($db, $rows, $langId);
+        $attributeIds = [];
+        foreach ($rows as $row) {
+            $attributeIds[] = (int) $row['id_product_attribute'];
+        }
+        $combinationNames = Combinations::labels($db, $attributeIds, $langId);
 
         $items = [];
         $outOfStock = 0;
@@ -119,36 +123,5 @@ class StockLow implements QueryInterface
             'out_of_stock_listed' => $outOfStock,
             'truncated' => $truncated,
         ];
-    }
-
-    /**
-     * @return array id_product_attribute => "Size: M, Color: Red"-like label (attribute names only)
-     */
-    private function combinationNames(ReadOnlyDb $db, array $rows, $langId)
-    {
-        $ids = [];
-        foreach ($rows as $row) {
-            if ((int) $row['id_product_attribute'] > 0) {
-                $ids[] = (int) $row['id_product_attribute'];
-            }
-        }
-        if (empty($ids)) {
-            return [];
-        }
-
-        $result = $db->select(
-            'SELECT pac.`id_product_attribute`, GROUP_CONCAT(al.`name` ORDER BY al.`name` SEPARATOR \', \') AS label
-             FROM ' . ReadOnlyDb::t('product_attribute_combination') . ' pac
-             INNER JOIN ' . ReadOnlyDb::t('attribute_lang') . ' al ON al.`id_attribute` = pac.`id_attribute` AND al.`id_lang` = ' . (int) $langId . '
-             WHERE pac.`id_product_attribute` IN (' . ShopScope::inList(array_unique($ids)) . ')
-             GROUP BY pac.`id_product_attribute`'
-        );
-
-        $names = [];
-        foreach ($result as $row) {
-            $names[(int) $row['id_product_attribute']] = (string) $row['label'];
-        }
-
-        return $names;
     }
 }
