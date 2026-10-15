@@ -45,7 +45,7 @@ class Presta360connector extends Module
     {
         $this->name = 'presta360connector';
         $this->tab = 'administration';
-        $this->version = '0.6.2';
+        $this->version = '0.7.0';
         $this->author = 'Presta360';
         $this->need_instance = 0;
         $this->bootstrap = true;

@@ -2,7 +2,7 @@
 <module>
     <name>presta360connector</name>
     <displayName><![CDATA[Presta360 Connector]]></displayName>
-    <version><![CDATA[0.6.2]]></version>
+    <version><![CDATA[0.7.0]]></version>
     <description><![CDATA[Read-only connector that lets shop managers ask about their PrestaShop in Claude.]]></description>
     <author><![CDATA[Presta360]]></author>
     <tab><![CDATA[administration]]></tab>
